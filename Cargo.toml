@@ -14,3 +14,12 @@ futures-util = "0.3.31"
 r2r = "0.9.5"
 tokio = { version = "1.37.0", features = ["full"] }
 tokio-tungstenite = "0.26.2"
+prost = "0.12"
+serde = { version = "1.0.213", features = ["derive"] }
+kcp-bindings = {version = "1.0.1", features = ["hexfellow"]}
+log = { version = "0.4.22", features = ["std"] }
+anyhow = "1.0.91"
+env_logger = "0.11.5"
+
+[build-dependencies]
+prost-build = { version = "0.12.4" }

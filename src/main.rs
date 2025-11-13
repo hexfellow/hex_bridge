@@ -4,22 +4,25 @@
  * Date  : 2025-11-06
  ***************************************************************/
 
-#[macro_use]
+use log::{error, info, warn};
+
 mod ros_handler;
 mod ws_handler;
 
 #[tokio::main]
 async fn main() {
+    env_logger::Builder::from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+    )
+    .init();
+
     ros_handler::init("hex_bridge")
         .await
         .expect("Failed to initialize ROS node");
 
-    let url =
-        ros_handler::get_or_declare_parameter("url", r2r::ParameterValue::String("".to_string()))
-            .await;
-
-    let read_only =
-        ros_handler::get_or_declare_parameter("read_only", r2r::ParameterValue::Bool(false)).await;
+    let url = ros_handler::get_parameter("url", r2r::ParameterValue::String("".to_string())).await;
+    let read_only = ros_handler::get_parameter("read_only", r2r::ParameterValue::Bool(false)).await;
+    let is_kcp = ros_handler::get_parameter("is_kcp", r2r::ParameterValue::Bool(true)).await;
 
     let url = match url {
         r2r::ParameterValue::String(s) => s,
@@ -29,21 +32,25 @@ async fn main() {
         r2r::ParameterValue::Bool(b) => b,
         _ => false,
     };
+    let is_kcp = match is_kcp {
+        r2r::ParameterValue::Bool(b) => b,
+        _ => true,
+    };
 
-    hex_info!("Starting WebSocket bridge");
-    hex_info!("  URL: {}", url);
-    hex_info!("  Read-only: {}", read_only);
+    info!("Starting bridge");
+    info!("  URL: {}", url);
+    info!("  Read-Only: {}", read_only);
+    info!("  KCP: {}", is_kcp);
 
-    // Run until Ctrl+C or WebSocket disconnects
     tokio::select! {
-        _ = ws_handler::handle_ws_connection(read_only, url) => {}
+        _ = ws_handler::create_bridge(read_only, url.clone()), if is_kcp => {}
+        _ = ws_handler::handle_ws_connection(read_only, url.clone()), if !is_kcp => {}
         _ = tokio::signal::ctrl_c() => {
-            hex_info!("Received Ctrl+C, shutting down...");
+            info!("Received Ctrl+C, shutting down...");
         }
     }
 
-    hex_info!("Cleaning up...");
-    // Give tasks a moment to clean up
+    info!("Cleaning up...");
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-    hex_info!("Shutdown complete");
+    info!("Shutdown complete");
 }

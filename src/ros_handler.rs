@@ -9,46 +9,11 @@ use r2r::{Node, QosProfile};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, OnceCell};
 
-static LOGGER_NAME: OnceCell<String> = OnceCell::const_new();
-
-pub(crate) fn get_logger_name() -> &'static str {
-    LOGGER_NAME
-        .get()
-        .map(|s| s.as_str())
-        .unwrap_or("hex_bridge")
-}
-
-#[macro_export]
-macro_rules! hex_info {
-    ($($arg:tt)*) => {
-        r2r::log_info!($crate::ros_handler::get_logger_name(), $($arg)*)
-    };
-}
-
-#[macro_export]
-macro_rules! hex_warn {
-    ($($arg:tt)*) => {
-        r2r::log_warn!($crate::ros_handler::get_logger_name(), $($arg)*)
-    };
-}
-
-#[macro_export]
-macro_rules! hex_err {
-    ($($arg:tt)*) => {
-        r2r::log_error!($crate::ros_handler::get_logger_name(), $($arg)*)
-    };
-}
-
 static ROS_NODE: OnceCell<Arc<Mutex<Node>>> = OnceCell::const_new();
 
 pub async fn init(node_name: &str) -> Result<(), Box<dyn std::error::Error>> {
     let ctx = r2r::Context::create()?;
     let node = r2r::Node::create(ctx, node_name, "")?;
-
-    let logger_name = node.logger().to_string();
-    LOGGER_NAME
-        .set(logger_name)
-        .map_err(|_| "Logger name already set")?;
 
     let node = Arc::new(Mutex::new(node));
 
@@ -109,10 +74,7 @@ pub async fn ws_subscriber(tx: mpsc::Sender<Vec<u8>>) {
     }
 }
 
-pub async fn get_or_declare_parameter(
-    name: &str,
-    default_value: r2r::ParameterValue,
-) -> r2r::ParameterValue {
+pub async fn get_parameter(name: &str, default_value: r2r::ParameterValue) -> r2r::ParameterValue {
     let node = ROS_NODE
         .get()
         .expect("Call init() before get_or_declare_parameter");
