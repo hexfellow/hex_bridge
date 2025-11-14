@@ -103,17 +103,6 @@ pub(crate) async fn create_bridge(read_only: bool, url: String) {
         tokio::spawn(ros_handler::ws_subscriber(sub_tx));
         tokio::spawn(async move {
             let tx = tx;
-            KcpPortOwner::send_binary(
-                &tx,
-                base_backend::ApiDown {
-                    down: Some(base_backend::api_down::Down::SetReportFrequency(
-                        base_backend::ReportFrequency::Rf250Hz as i32,
-                    )),
-                }
-                .encode_to_vec(),
-            )
-            .await
-            .expect("Failed to send report frequency message");
             while let Some(msg) = sub_rx.recv().await {
                 KcpPortOwner::send_binary(&tx, msg).await.unwrap();
             }
