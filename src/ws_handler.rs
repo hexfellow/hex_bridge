@@ -20,6 +20,11 @@ pub mod base_backend {
     include!(concat!(env!("OUT_DIR"), "/_.rs"));
 }
 
+// Protocol version constants generated from proto-public-api/version.rs.
+mod version {
+    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/proto-public-api/version.rs"));
+}
+
 const ACCEPTABLE_PROTOCOL_MAJOR_VERSION: u32 = 1;
 
 pub(crate) async fn handle_ws_connection(read_only: bool, url: String) {
@@ -138,6 +143,8 @@ pub(crate) async fn handle_kcp_connection(
     ws_sink
         .send(tungstenite::Message::Binary(
             base_backend::ApiDown {
+                protocol_major_version: version::CURRENT_PROTOCOL_MAJOR_VERSION,
+                protocol_minor_version: version::CURRENT_PROTOCOL_MINOR_VERSION,
                 down: Some(base_backend::api_down::Down::EnableKcp(
                     base_backend::EnableKcp {
                         client_peer_port: local_port as u32,
@@ -184,6 +191,8 @@ pub(crate) async fn handle_kcp_connection(
     KcpPortOwner::send_binary(
         &tx,
         base_backend::ApiDown {
+            protocol_major_version: version::CURRENT_PROTOCOL_MAJOR_VERSION,
+            protocol_minor_version: version::CURRENT_PROTOCOL_MINOR_VERSION,
             down: Some(base_backend::api_down::Down::PlaceholderMessage(true)),
         }
         .encode_to_vec(),
@@ -196,6 +205,8 @@ pub(crate) async fn handle_kcp_connection(
     ws_sink
         .send(tungstenite::Message::Binary(
             base_backend::ApiDown {
+                protocol_major_version: version::CURRENT_PROTOCOL_MAJOR_VERSION,
+                protocol_minor_version: version::CURRENT_PROTOCOL_MINOR_VERSION,
                 down: Some(base_backend::api_down::Down::SetReportFrequency(
                     base_backend::ReportFrequency::Rf1Hz as i32,
                 )),
